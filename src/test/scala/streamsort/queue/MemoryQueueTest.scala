@@ -2,12 +2,12 @@ package streamsort.queue
 
 import org.scalatest.{FlatSpec, Matchers}
 
-class ListQueueTest extends FlatSpec with Matchers {
+class MemoryQueueTest extends FlatSpec with Matchers {
 
   behavior of "ListQueueTest"
 
   it should "enqueue new values to the end of the list" in {
-    val q = new ListQueue[Int]()
+    val q = new MemoryQueue[Int]()
 
     q.enqueue(1)
     q.enqueue(0)
@@ -17,7 +17,7 @@ class ListQueueTest extends FlatSpec with Matchers {
   }
 
   it should "peek the next value without modifying the Queue" in {
-    val q = new ListQueue[Int]()
+    val q = new MemoryQueue[Int]()
 
     q.peek should equal(None)
 
@@ -34,7 +34,7 @@ class ListQueueTest extends FlatSpec with Matchers {
 
   it should "dequeue" in {
 
-    val q = new ListQueue[Int]()
+    val q = new MemoryQueue[Int]()
 
     q.dequeue() should equal (None)
     q.data should equal (List())

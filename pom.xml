@@ -6,7 +6,7 @@
   <inceptionYear>2008</inceptionYear>
   <properties>
     <scala.majorversion>2.11</scala.majorversion>
-    <scala.version>${scala.majorversion}.8</scala.version>
+    <scala.version>${scala.majorversion}.12</scala.version>
 
     <scalatest.version>3.0.5</scalatest.version>
   </properties>

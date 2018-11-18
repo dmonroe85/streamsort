@@ -5,9 +5,17 @@ import streamsort.queue.DataQueue
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer
 
-class Merger[T](implicit ord: Ordering[T]) {
+class Merger[T](sequential: Boolean = false)(implicit ord: Ordering[T]) {
 
   var inputs: Map[Int, DataQueue[T]] = new HashMap()
+
+  def getQ(i: Int): DataQueue[T] = {
+    inputs(i)
+  }
+
+  def getQs(is: List[Int]): Set[DataQueue[T]] = {
+    is.map(inputs(_)).toSet
+  }
 
   def createInput(newQ: DataQueue[T]): Unit = {
     val maxI = if (inputs.keys.nonEmpty) inputs.keys.max else 0
@@ -40,15 +48,26 @@ class Merger[T](implicit ord: Ordering[T]) {
   }
 
   def merge(): List[T] = {
-    val qs = findMins().toList
-    val minVal = qs.headOption.map(_.peek().get)
-    qs.flatMap(q => {
-      var lb = ListBuffer[T]()
-      while(q.peek() == minVal) {
-        lb += q.dequeue().get
-      }
-      lb
-    })
+    var qs = List[DataQueue[T]]()
+    val out = ListBuffer[T]()
+
+    do {
+      qs = findMins().toList
+
+      val minVal = qs.headOption.map(_.peek().get)
+
+      out ++=
+        qs.flatMap(q => {
+          val lb = ListBuffer[T]()
+          while (q.peek() == minVal) {
+            lb += q.dequeue().get
+          }
+          lb
+        })
+
+    } while (qs.nonEmpty)
+
+    out.toList
   }
 
 }
