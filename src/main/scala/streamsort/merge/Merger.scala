@@ -5,13 +5,9 @@ import streamsort.queue.DataQueue
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer
 
-class Merger[T](sequential: Boolean = false)(implicit ord: Ordering[T]) {
+class Merger[T](nextInSequence: Option[T => T] = None)(implicit ord: Ordering[T]) {
 
   var inputs: Map[Int, DataQueue[T]] = new HashMap()
-
-  def getQ(i: Int): DataQueue[T] = {
-    inputs(i)
-  }
 
   def getQs(is: List[Int]): Set[DataQueue[T]] = {
     is.map(inputs(_)).toSet
@@ -48,11 +44,29 @@ class Merger[T](sequential: Boolean = false)(implicit ord: Ordering[T]) {
   }
 
   def merge(): List[T] = {
+    if (nextInSequence.nonEmpty) {
+      // Merges until at least one input has a null value
+      var lb: ListBuffer[T] = ListBuffer() ++ mergeWithLastVal()
+
+      // Continues merging as long as there are sequential values to take
+      var tmpOut: List[T] = List()
+      do {
+        tmpOut = mergeWithLastVal(nextInSequence.get(lb.last))
+        lb ++= tmpOut
+      } while (tmpOut.nonEmpty)
+
+      lb.toList
+    } else {
+      mergeWithLastVal()
+    }
+  }
+
+  def mergeWithLastVal(lastVal: Option[T] = None): List[T] = {
     var qs = List[DataQueue[T]]()
     val out = ListBuffer[T]()
 
     do {
-      qs = findMins().toList
+      qs = findMins(lastVal).toList
 
       val minVal = qs.headOption.map(_.peek().get)
 
@@ -70,18 +84,19 @@ class Merger[T](sequential: Boolean = false)(implicit ord: Ordering[T]) {
     out.toList
   }
 
+  def mergeWithLastVal(lastVal: T): List[T] = {
+    mergeWithLastVal(Some(lastVal))
+  }
+
 }
 
 object Merger {
 
-  def apply[T](implicit ord: Ordering[T]): Merger[T] = {
-    val m = new Merger[T]
-    m
-  }
-
-  def apply[T](inputs: List[DataQueue[T]] = List())(implicit ord: Ordering[T]): Merger[T] = {
-    val m = new Merger[T]
+  def apply[T](inputs: List[DataQueue[T]] = List(),
+               nextInSequence: Option[T => T] = None)(implicit ord: Ordering[T]): Merger[T] = {
+    val m = new Merger[T](nextInSequence)
     inputs.foreach(m.createInput)
     m
   }
+
 }

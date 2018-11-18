@@ -32,27 +32,28 @@ class MergerTest extends FlatSpec with Matchers {
     m.inputs(1).peek() should equal(Some(1234))
   }
 
-  def build2QueueMerger(): Merger[Int] = {
-    val lq1 = new MemoryQueue[Int]
-    val lq2 = new MemoryQueue[Int]
-    Merger(List(lq1, lq2))
+  def build2QueueMerger[T](nextInSequence: Option[T => T] = None)
+                          (implicit ord: Ordering[T]): Merger[T] = {
+    val lq1 = new MemoryQueue[T]()
+    val lq2 = new MemoryQueue[T]()
+    Merger(List(lq1, lq2), nextInSequence)
   }
 
   it should "findMins returning an empty output when not all queues have data" in {
-    val m = build2QueueMerger()
+    val m = build2QueueMerger[Int]()
     m.findMins() should equal(Set())
     m.enqueue(1)(10)
     m.findMins() should equal(Set())
   }
 
   it should "findMins returning the matching queue when looking for a specific value" in {
-    val m = build2QueueMerger()
+    val m = build2QueueMerger[Int]()
     m.enqueue(1)(10)
     m.findMins(10) should equal(m.getQs(List(1)))
   }
 
   it should "findMins returning the min-value queues" in {
-    val m = build2QueueMerger()
+    val m = build2QueueMerger[Int]()
     m.enqueue(1)(10)
     m.enqueue(2)(9)
     m.findMins() should equal(m.getQs(List(2)))
@@ -64,7 +65,7 @@ class MergerTest extends FlatSpec with Matchers {
   }
 
   it should "merge returning empty for no values or insufficient values queued" in {
-    val m = build2QueueMerger()
+    val m = build2QueueMerger[Int]()
 
     m.merge() should equal(List())
 
@@ -73,7 +74,7 @@ class MergerTest extends FlatSpec with Matchers {
   }
 
   it should "merge returning min values for sufficiently populated queues" in {
-    val m = build2QueueMerger()
+    val m = build2QueueMerger[Int]()
     m.enqueue(2)(20)
     m.enqueue(1)(19)
     m.merge() should equal(List(19))
@@ -82,8 +83,8 @@ class MergerTest extends FlatSpec with Matchers {
     m.merge() should equal(List(20, 20))
   }
 
-  it should "merge returning ordered values as long as queues are sufficiently populated" in {
-    val m = build2QueueMerger()
+  it should "merge returning all ordered values as long as queues are sufficiently populated" in {
+    val m = build2QueueMerger[Int]()
 
     m.enqueue(1)(21)
     m.enqueue(1)(21)
@@ -97,6 +98,20 @@ class MergerTest extends FlatSpec with Matchers {
     m.enqueue(1)(24)
     m.enqueue(2)(25)
     m.merge() should equal(List(22, 22, 23, 23, 24))
+    // When didn't return 25 because there's nothing left in 1, so we can't return anything else yet
+  }
+
+  it should "allow sequential merge to return all available ordered values" in {
+    val m = build2QueueMerger[Int](Some(x => x + 1))
+
+    m.enqueue(1)(22)
+    m.enqueue(2)(22)
+    m.enqueue(2)(23)
+    m.enqueue(2)(23)
+    m.enqueue(1)(24)
+    m.enqueue(2)(25)
+    m.enqueue(2)(26)
+    m.merge() should equal(List(22, 22, 23, 23, 24, 25, 26))
   }
 
 }
