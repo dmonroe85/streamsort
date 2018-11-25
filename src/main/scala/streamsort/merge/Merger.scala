@@ -1,11 +1,14 @@
 package streamsort.merge
 
+import streamsort.last.MemoryLastValue
 import streamsort.queue.DataQueue
 
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer
 
-class Merger[T](nextInSequence: Option[T => T] = None)(implicit ord: Ordering[T]) {
+class Merger[T](nextInSequence: Option[T => T] = None,
+                lastValue: MemoryLastValue[T] = MemoryLastValue[T]())
+               (implicit ord: Ordering[T]) {
 
   var inputs: Map[Int, DataQueue[T]] = new HashMap()
 
@@ -46,14 +49,24 @@ class Merger[T](nextInSequence: Option[T => T] = None)(implicit ord: Ordering[T]
   def merge(): List[T] = {
     if (nextInSequence.nonEmpty) {
       // Merges until at least one input has a null value
-      var lb: ListBuffer[T] = ListBuffer() ++ mergeWithLastVal()
+      var lb: ListBuffer[T] =
+        ListBuffer().flatten ++
+          mergeWithLastVal()
 
       // Continues merging as long as there are sequential values to take
       var tmpOut: List[T] = List()
       do {
-        tmpOut = mergeWithLastVal(nextInSequence.get(lb.last))
+        tmpOut =
+          if (lb.nonEmpty)
+            mergeWithLastVal(nextInSequence.get(lb.last))
+          else if (lastValue.nonEmpty)
+            mergeWithLastVal(nextInSequence.get(lastValue.get))
+          else tmpOut
+
         lb ++= tmpOut
       } while (tmpOut.nonEmpty)
+
+      lb.lastOption.foreach(v => lastValue.put(v))
 
       lb.toList
     } else {

@@ -4,9 +4,9 @@ import org.scalatest.{FlatSpec, Matchers}
 
 class MemoryQueueTest extends FlatSpec with Matchers {
 
-  behavior of "ListQueueTest"
+  behavior of "enqueue"
 
-  it should "enqueue new values to the end of the list" in {
+  it should "add new values to the end of the list" in {
     val q = new MemoryQueue[Int]()
 
     q.enqueue(1)
@@ -16,7 +16,10 @@ class MemoryQueueTest extends FlatSpec with Matchers {
     q.data should equal(List(1, 0, 3))
   }
 
-  it should "peek the next value without modifying the Queue" in {
+
+  behavior of "peek"
+
+  it should "show the next value without modifying the Queue" in {
     val q = new MemoryQueue[Int]()
 
     q.peek should equal(None)
@@ -32,7 +35,10 @@ class MemoryQueueTest extends FlatSpec with Matchers {
 
   }
 
-  it should "dequeue" in {
+
+  behavior of "dequeue"
+
+  it should "remove and return the next value from the queue" in {
 
     val q = new MemoryQueue[Int]()
 
